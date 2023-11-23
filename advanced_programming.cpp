@@ -170,6 +170,13 @@ private:
 
 int main() {
     
+    int motionCommandPort = 9999; // Port pour le serveur de commandes de mouvement
+    int scanListenerPort = 9997; // Port pour l'écouteur de scans
+    double stopDistance = 50.0; // Distance d'arrêt pour le scanneur
+
+    // Création des instances des serveurs MotionCommandServer et ScanListener
+    MotionCommandServer cmdVelServer(motionCommandPort);
+    ScanListener scanListener(scanListenerPort, stopDistance);
     thread motionServerThread(&MotionCommandServer::startServer, &cmdVelServer);
     thread scanListenerThread(&ScanListener::startListener, &scanListener);
 
