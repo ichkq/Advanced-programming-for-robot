@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define RCVBUFSIZE 32
+#define CMD_BUFSIZE 128
+
+void DieWithError(char *errorMessage);
+
+int main(int argc, char *argv[]) {
+    // ... (previous code remains unchanged)
+
+    // Establish TCP connection
+    // ...
+
+    char cmdBuffer[CMD_BUFSIZE]; // Buffer for command
+    int cmdLen; // Length of command
+
+    while (1) {
+        // Assuming cmd_vel is used to control robot's velocity
+        printf("Enter velocity command (cmd_vel): ");
+        fgets(cmdBuffer, CMD_BUFSIZE, stdin);
+        cmdLen = strlen(cmdBuffer);
+
+        // Send the velocity command to the server
+        if (send(sock, cmdBuffer, cmdLen, 0) != cmdLen)
+            DieWithError("send() sent a different number of bytes than expected");
+
+        // Receive response (if any) from the server
+        // ...
+    }
+
+    // Close socket and exit
+    close(sock);
+    exit(0);
+}
+
