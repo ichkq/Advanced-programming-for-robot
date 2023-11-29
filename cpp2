@@ -1,0 +1,128 @@
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <cstring>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
+using namespace std;
+
+class CommandServer {
+public:
+    CommandServer(int port) : port(port) {}
+
+    void startServer() {
+        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (serverSocket == -1) {
+            cerr << "Error creating socket" << endl;
+            return;
+        }
+
+        sockaddr_in serverAddress{AF_INET, INADDR_ANY, htons(port)};
+        if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1 ||
+            listen(serverSocket, 1) == -1) {
+            cerr << "Error binding or listening on socket" << endl;
+            close(serverSocket);
+            return;
+        }
+
+        cout << "Server is waiting for a connection on port " << port << "..." << endl;
+
+        clientSocket = accept(serverSocket, nullptr, nullptr);
+        if (clientSocket == -1) {
+            cerr << "Error accepting connection" << endl;
+            close(serverSocket);
+            return;
+        }
+
+        while (true) {
+            // Your server logic goes here
+        }
+
+        close(clientSocket);
+        close(serverSocket);
+    }
+
+    virtual void processCommand(double linear_vel, double angular_vel) = 0;
+
+protected:
+    int serverSocket;
+    int clientSocket;
+    int port;
+};
+
+class MotionCommandServer : public CommandServer {
+public:
+    MotionCommandServer(int port) : CommandServer(port) {}
+
+    void processCommand(double linear_vel, double angular_vel) override {
+        // Your motion command server logic goes here
+    }
+};
+
+class ScanListener {
+public:
+    ScanListener(int port, double stop_distance_cm) : port(port), stop_distance_cm(stop_distance_cm) {}
+
+    void startListener() {
+        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+        if (serverSocket == -1) {
+            cerr << "Error creating socket" << endl;
+            return;
+        }
+
+        sockaddr_in serverAddress{AF_INET, INADDR_ANY, htons(port)};
+        if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1 ||
+            listen(serverSocket, 1) == -1) {
+            cerr << "Error binding or listening on socket" << endl;
+            close(serverSocket);
+            return;
+        }
+
+        cout << "Scan listener is waiting for a connection on port " << port << "..." << endl;
+
+        clientSocket = accept(serverSocket, nullptr, nullptr);
+        if (clientSocket == -1) {
+            cerr << "Error accepting connection" << endl;
+            close(serverSocket);
+            return;
+        }
+
+        while (true) {
+            // Your scan listener logic goes here
+        }
+
+        close(clientSocket);
+        close(serverSocket);
+    }
+
+private:
+    int serverSocket;
+    int clientSocket;
+    int port;
+    double stop_distance_cm;
+
+    void processDistance(double distance) {
+        // Your distance processing logic goes here
+    }
+};
+
+int main() {
+    
+    int motionCommandPort = 9999; // Port for the motion command server
+    int scanListenerPort = 9997; // Port for the scan listener
+    double stopDistance = 50.0; // Stop distance for the scanner
+
+    // Create instances of MotionCommandServer and ScanListener
+    MotionCommandServer cmdVelServer(motionCommandPort);
+    ScanListener scanListener(scanListenerPort, stopDistance);
+    thread motionServerThread(&MotionCommandServer::startServer, &cmdVelServer);
+    thread scanListenerThread(&ScanListener::startListener, &scanListener);
+
+    motionServerThread.join();
+    scanListenerThread.join();
+
+    return 0;
+}
