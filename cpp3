@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define BUF_SIZE 256
+
+// Shared data structure for laser scan
+typedef struct {
+    float ranges[360];
+} LaserScanData;
+
+// Shared data structure for odometry
+typedef struct {
+    float x;
+    float y;
+    float theta;
+} OdometryData;
+
+// Shared data structure for velocity command
+typedef struct {
+    float linear;
+    float angular;
+} VelocityCommand;
+
+// Shared data structure for robot state
+typedef struct {
+    OdometryData odometry;
+    LaserScanData laserScan;
+    VelocityCommand velocityCommand;
+    sem_t mutex;
+} RobotState;
+
+// Global variables for shared memory
+RobotState *robotState;
+
+// Function prototypes
+void *cmdVelListener(void *arg);
+void *scanListener(void *arg);
+void *odomListener(void *arg);
+void *robotController(void *arg);
+
+int main() {
+    // Allocate shared memory
+    robotState = (RobotState *)malloc(sizeof(RobotState));
+    memset(robotState, 0, sizeof(RobotState));
+    sem_init(&robotState->mutex, 0, 1);
+
+    // Create threads for listeners and controller
+    pthread_t cmdVelThread, scanThread, odomThread, controlThread;
+
+    pthread_create(&cmdVelThread, NULL, cmdVelListener, NULL);
+    pthread_create(&scanThread, NULL, scanListener, NULL);
+    pthread_create(&odomThread, NULL, odomListener, NULL);
+    pthread_create(&controlThread, NULL, robotController, NULL);
+
+    // Join threads
+    pthread_join(cmdVelThread, NULL);
+    pthread_join(scanThread, NULL);
+    pthread_join(odomThread, NULL);
+    pthread_join(controlThread, NULL);
+
+    // Clean up and exit
+    sem_destroy(&robotState->mutex);
+    free(robotState);
+
+    return 0;
+}
+
+void *cmdVelListener(void *arg) {
+    // Simulated function to listen for velocity commands
+    while (1) {
+        // Simulated input, replace with actual implementation
+        printf("Enter linear velocity and angular velocity (e.g., 0.5 0.1): ");
+        scanf("%f %f", &robotState->velocityCommand.linear, &robotState->velocityCommand.angular);
+        usleep(500000);  // Sleep for 500ms
+    }
+}
+
+void *scanListener(void *arg) {
+    // Simulated function to listen for laser scan data
+    while (1) {
+        // Simulated input, replace with actual implementation
+        for (int i = 0; i < 360; ++i) {
+            robotState->laserScan.ranges[i] = (float)(rand() % 100) / 100.0;  // Random values between 0 and 1
+        }
+        usleep(1000000);  // Sleep for 1s
+    }
+}
+
+void *odomListener(void *arg) {
+    // Simulated function to listen for odometry data
+    while (1) {
+        // Simulated input, replace with actual implementation
+        robotState->odometry.x += robotState->velocityCommand.linear;
+        robotState->odometry.theta += robotState->velocityCommand.angular;
+        usleep(50000);  // Sleep for 50ms
+    }
+}
+
+void *robotController(void *arg) {
+    // Simulated function to control the robot based on sensor data
+    while (1) {
+        sem_wait(&robotState->mutex);
+
+        // Implement your robot control logic here
+        printf("Robot Position: x=%.2f, y=%.2f, theta=%.2f\n",
+               robotState->odometry.x, robotState->odometry.y, robotState->odometry.theta);
+
+        sem_post(&robotState->mutex);
+
+        usleep(100000);  // Sleep for 100ms
+    }
+}
